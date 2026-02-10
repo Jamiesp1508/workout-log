@@ -15,6 +15,7 @@
 
 <h2>Workout Log</h2>
 
+<input type="date" id="date">
 <input id="exercise" placeholder="Exercise">
 <input id="weight" placeholder="Weight (kg)">
 <input id="reps" placeholder="Reps">
@@ -27,26 +28,29 @@
 let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
 let editIndex = null;
 
+document.getElementById("date").value = new Date().toISOString().split("T")[0];
+
 function save() {
   localStorage.setItem("workouts", JSON.stringify(workouts));
 }
 
 function addWorkout() {
+  const date = document.getElementById("date").value;
   const exercise = document.getElementById("exercise").value;
   const weight = document.getElementById("weight").value;
   const reps = document.getElementById("reps").value;
-  const today = new Date().toISOString().split("T")[0];
 
   if(editIndex !== null){
-    workouts[editIndex] = { exercise, weight, reps, date: today };
+    workouts[editIndex] = { exercise, weight, reps, date };
     editIndex = null;
   } else {
-    workouts.unshift({ exercise, weight, reps, date: today });
+    workouts.unshift({ exercise, weight, reps, date });
   }
 
   document.getElementById("exercise").value = "";
   document.getElementById("weight").value = "";
   document.getElementById("reps").value = "";
+  document.getElementById("date").value = new Date().toISOString().split("T")[0];
 
   save();
   loadWorkouts();
@@ -60,6 +64,7 @@ function deleteWorkout(index){
 
 function editWorkout(index){
   const w = workouts[index];
+  document.getElementById("date").value = w.date;
   document.getElementById("exercise").value = w.exercise;
   document.getElementById("weight").value = w.weight;
   document.getElementById("reps").value = w.reps;
