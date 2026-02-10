@@ -1,3 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Workout Log</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial; margin: 0; padding: 20px; }
+    input, button, select { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; box-sizing: border-box; }
+    h2 { text-align:center; }
+
+    .week { margin-top:30px; border:1px solid #ccc; border-radius:8px; padding:10px; background:#f9f9f9; }
+    .weekTitle { font-weight:bold; font-size:18px; margin-bottom:10px; }
+
+    .dayRow { margin-top:12px; }
+    .dayHeader { font-weight:bold; font-size:14px; }
+    .workoutItem { font-size:12px; padding:4px; border-bottom:1px dashed #ddd; display:flex; justify-content:space-between; }
+
+    .smallbtn { width:auto; padding:2px 4px; font-size:11px; margin-left:2px; }
+    .checkboxRow { display:flex; gap:15px; font-size:14px; }
+  </style>
+</head>
+<body>
+
+<h2>Workout Log</h2>
+
+<input type="date" id="date">
+<input id="exercise" placeholder="Exercise">
+<input id="weight" placeholder="Weight (kg)">
+
+<div class="checkboxRow">
+  <label><input type="checkbox" id="db"> DB</label>
+  <label><input type="checkbox" id="eachSide"> Each Side</label>
+</div>
+
+<select id="reps1"></select>
+<select id="reps2"></select>
+<select id="reps3"></select>
+
+<button onclick="addWorkout()">Submit</button>
+
+<h3>History</h3>
+<div id="list"></div>
+
 <script>
 let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
 let editIndex = null;
@@ -16,7 +59,9 @@ dateInput.value = new Date().toISOString().split("T")[0];
 
 function fillReps(select){
   select.innerHTML = '<option value="">No set</option>';
-  for(let i=1;i<=40;i++) select.innerHTML += `<option value="${i}">${i} reps</option>`;
+  for(let i=1;i<=40;i++){
+    select.innerHTML += `<option value="${i}">${i} reps</option>`;
+  }
 }
 fillReps(reps1); fillReps(reps2); fillReps(reps3);
 
@@ -49,10 +94,7 @@ function addWorkout(){
 
 function moveWorkout(index, direction){
   const date = workouts[index].date;
-  let sameDayIndexes = workouts
-    .map((w,i)=> w.date===date ? i : null)
-    .filter(i=> i!==null);
-
+  let sameDayIndexes = workouts.map((w,i)=> w.date===date ? i : null).filter(i=> i!==null);
   const pos = sameDayIndexes.indexOf(index);
   const newPos = pos + direction;
   if(newPos < 0 || newPos >= sameDayIndexes.length) return;
@@ -144,3 +186,5 @@ function loadWorkouts(){
 
 loadWorkouts();
 </script>
+</body>
+</html>
