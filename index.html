@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body { font-family: Arial; margin: 0; padding: 20px; }
-    input, button { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; box-sizing: border-box; }
+    input, button, select { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; box-sizing: border-box; }
     h2 { text-align:center; margin-bottom:10px; }
 
     .week { margin-top:30px; border:1px solid #ccc; border-radius:8px; padding:10px; background:#f9f9f9; }
@@ -16,8 +16,7 @@
     .workoutItem { font-size:12px; padding:4px; border-bottom:1px dashed #ddd; display:flex; justify-content:space-between; align-items:center; }
 
     .smallbtn { width:auto; padding:2px 4px; font-size:11px; margin-left:2px; }
-
-    .dashboard { background:#eee; padding:6px 10px; margin-bottom:10px; border-radius:6px; font-size:13px; }
+    .checkboxLabel { font-size:14px; display:flex; align-items:center; gap:6px; margin-bottom:6px; }
   </style>
 </head>
 <body>
@@ -26,8 +25,18 @@
 
 <input type="date" id="date">
 <input id="exercise" placeholder="Exercise">
+
+<div class="checkboxLabel">
+  <input type="checkbox" id="dbCheckbox">
+  <label for="dbCheckbox">DB each side</label>
+</div>
+
 <input id="weight" placeholder="Weight (kg)">
-<input id="reps" placeholder="Reps">
+
+<select id="reps">
+  <option value="">Select reps</option>
+</select>
+
 <button onclick="addWorkout()">Submit</button>
 
 <h3>History</h3>
@@ -36,6 +45,14 @@
 <script>
 let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
 let editIndex = null;
+
+// Populate reps dropdown (up to 3 sets of 1–40)
+const repsSelect = document.getElementById("reps");
+for(let set=1; set<=3; set++){
+  for(let r=1; r<=40; r++){
+    repsSelect.innerHTML += `<option value="${r}">${r} reps (set ${set})</option>`;
+  }
+}
 
 const dateInput = document.getElementById("date");
 dateInput.value = new Date().toISOString().split("T")[0];
@@ -47,10 +64,13 @@ function save() {
 function addWorkout() {
   const date = dateInput.value;
   const exercise = document.getElementById("exercise").value.trim();
-  const weight = document.getElementById("weight").value.trim();
-  const reps = document.getElementById("reps").value.trim();
+  let weight = document.getElementById("weight").value.trim();
+  const reps = repsSelect.value;
 
-  if(!exercise || !reps) return alert("Enter Exercise and Reps");
+  if(!exercise || !reps) return alert("Enter Exercise and select Reps");
+
+  // Append DB marker if checked
+  if(document.getElementById("dbCheckbox").checked && weight) weight += " (DB each side)";
 
   if(editIndex !== null){
     workouts[editIndex] = { exercise, weight, reps, date };
@@ -59,9 +79,11 @@ function addWorkout() {
     workouts.push({ exercise, weight, reps, date });
   }
 
+  // Reset form
   document.getElementById("exercise").value = "";
   document.getElementById("weight").value = "";
-  document.getElementById("reps").value = "";
+  repsSelect.value = "";
+  document.getElementById("dbCheckbox").checked = false;
   dateInput.value = new Date().toISOString().split("T")[0];
 
   save();
@@ -89,8 +111,17 @@ function editWorkout(index){
   const w = workouts[index];
   dateInput.value = w.date;
   document.getElementById("exercise").value = w.exercise;
-  document.getElementById("weight").value = w.weight;
-  document.getElementById("reps").value = w.reps;
+
+  // Handle DB checkbox
+  if(w.weight && w.weight.includes("(DB each side)")){
+    document.getElementById("dbCheckbox").checked = true;
+    document.getElementById("weight").value = w.weight.replace(" (DB each side)","");
+  } else {
+    document.getElementById("dbCheckbox").checked = false;
+    document.getElementById("weight").value = w.weight || "";
+  }
+
+  repsSelect.value = w.reps;
   editIndex = index;
 }
 
@@ -111,37 +142,22 @@ function loadWorkouts(){
   });
 
   Object.keys(weeks).sort((a,b)=> new Date(b)-new Date(a)).forEach(weekStart=>{
-    const weekData = weeks[weekStart];
     const monday = new Date(weekStart);
     const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
 
-    // Weekly dashboard (totals per exercise)
-    const totals = {};
-    weekData.forEach(w=>{
-      if(!totals[w.exercise]) totals[w.exercise] = {weight:0, reps:0};
-      totals[w.exercise].reps += parseInt(w.reps)||0;
-      totals[w.exercise].weight += parseInt(w.weight)||0;
-    });
-    let dashboardHTML = "Weekly totals: ";
-    for(let ex in totals){
-      dashboardHTML += `${ex} ${totals[ex].weight}kg x ${totals[ex].reps} reps; `;
-    }
-
     list.innerHTML += `<div class="week">
       <div class="weekTitle">Week ${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}</div>
-      <div class="dashboard">${dashboardHTML}</div>
     </div>`;
 
     const weekDiv = list.querySelector(".week:last-child");
 
     // Group by day
     const days = {};
-    weekData.forEach(w=>{
+    weeks[weekStart].forEach(w=>{
       if(!days[w.date]) days[w.date] = [];
       days[w.date].push(w);
     });
 
-    // Create day rows Mon → Sun
     for(let i=0;i<7;i++){
       const dayDate = new Date(monday); dayDate.setDate(monday.getDate()+i);
       const dayStr = dayDate.toISOString().split("T")[0];
@@ -155,7 +171,7 @@ function loadWorkouts(){
         days[dayStr].forEach(w=>{
           const item = document.createElement("div");
           item.className = "workoutItem";
-          item.innerHTML = `${w.exercise} ${w.weight||""}kg x ${w.reps}
+          item.innerHTML = `${w.exercise} ${w.weight||""} x ${w.reps}
             <span>
             <button class="smallbtn" onclick="editWorkout(${w.index})">✏️</button>
             <button class="smallbtn" onclick="deleteWorkout(${w.index})">🗑</button>
