@@ -25,8 +25,8 @@
 
 <input type="date" id="date">
 <input id="exercise" placeholder="Exercise">
-
 <input id="weight" placeholder="Weight (kg)">
+
 <div class="checkboxRow">
   <label><input type="checkbox" id="db"> DB</label>
   <label><input type="checkbox" id="eachSide"> Each Side</label>
@@ -45,15 +45,28 @@
 let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
 let editIndex = null;
 
+const exerciseInput = document.getElementById("exercise");
+const weightInput = document.getElementById("weight");
+const reps1 = document.getElementById("reps1");
+const reps2 = document.getElementById("reps2");
+const reps3 = document.getElementById("reps3");
+const db = document.getElementById("db");
+const eachSide = document.getElementById("eachSide");
+const list = document.getElementById("list");
 const dateInput = document.getElementById("date");
+
 dateInput.value = new Date().toISOString().split("T")[0];
 
-// populate dropdowns 1–40 reps
+//// FIXED: populate dropdowns AFTER elements exist
 function fillReps(select){
   select.innerHTML = '<option value="">No set</option>';
-  for(let i=1;i<=40;i++) select.innerHTML += `<option value="${i}">${i} reps</option>`;
+  for(let i=1;i<=40;i++){
+    select.innerHTML += `<option value="${i}">${i} reps</option>`;
+  }
 }
-fillReps(reps1); fillReps(reps2); fillReps(reps3);
+fillReps(reps1);
+fillReps(reps2);
+fillReps(reps3);
 
 function save(){
   localStorage.setItem("workouts", JSON.stringify(workouts));
@@ -82,30 +95,21 @@ function addWorkout(){
     workouts.push({exercise, weight, reps, date});
   }
 
-  // reset form
-  exerciseInput.value = "";
-  weightInput.value = "";
-  reps1.value = reps2.value = reps3.value = "";
-  db.checked = eachSide.checked = false;
+  exerciseInput.value="";
+  weightInput.value="";
+  reps1.value=reps2.value=reps3.value="";
+  db.checked=eachSide.checked=false;
   dateInput.value = new Date().toISOString().split("T")[0];
 
   save();
   loadWorkouts();
 }
 
-const exerciseInput = document.getElementById("exercise");
-const weightInput = document.getElementById("weight");
-const reps1 = document.getElementById("reps1");
-const reps2 = document.getElementById("reps2");
-const reps3 = document.getElementById("reps3");
-const db = document.getElementById("db");
-const eachSide = document.getElementById("eachSide");
-
 function getMonday(d){
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(date.setDate(diff));
+  const date=new Date(d);
+  const day=date.getDay();
+  const diff=date.getDate()-day+(day===0?-6:1);
+  const monday=new Date(date.setDate(diff));
   monday.setHours(0,0,0,0);
   return monday;
 }
@@ -118,15 +122,15 @@ function deleteWorkout(i){
 }
 
 function editWorkout(i){
-  const w = workouts[i];
-  exerciseInput.value = w.exercise;
-  weightInput.value = w.weight;
-  dateInput.value = w.date;
-  editIndex = i;
+  const w=workouts[i];
+  exerciseInput.value=w.exercise;
+  weightInput.value=w.weight;
+  dateInput.value=w.date;
+  editIndex=i;
 }
 
 function loadWorkouts(){
-  list.innerHTML = "";
+  list.innerHTML="";
   if(workouts.length===0) return;
 
   workouts.sort((a,b)=> new Date(b.date)-new Date(a.date));
