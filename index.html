@@ -1,46 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Workout Log</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: Arial; margin: 0; padding: 20px; }
-    input, button, select { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; box-sizing: border-box; }
-    h2 { text-align:center; margin-bottom:10px; }
-
-    .week { margin-top:30px; border:1px solid #ccc; border-radius:8px; padding:10px; background:#f9f9f9; }
-    .weekTitle { font-weight:bold; font-size:18px; margin-bottom:10px; }
-
-    .dayRow { margin-top:12px; }
-    .dayHeader { font-weight:bold; font-size:14px; margin-bottom:4px; }
-    .workoutItem { font-size:12px; padding:4px; border-bottom:1px dashed #ddd; display:flex; justify-content:space-between; align-items:center; }
-
-    .smallbtn { width:auto; padding:2px 4px; font-size:11px; margin-left:2px; }
-    .checkboxRow { display:flex; gap:15px; font-size:14px; margin-top:4px; }
-  </style>
-</head>
-<body>
-
-<h2>Workout Log</h2>
-
-<input type="date" id="date">
-<input id="exercise" placeholder="Exercise">
-<input id="weight" placeholder="Weight (kg)">
-
-<div class="checkboxRow">
-  <label><input type="checkbox" id="db"> DB</label>
-  <label><input type="checkbox" id="eachSide"> Each Side</label>
-</div>
-
-<select id="reps1"></select>
-<select id="reps2"></select>
-<select id="reps3"></select>
-
-<button onclick="addWorkout()">Submit</button>
-
-<h3>History</h3>
-<div id="list"></div>
-
 <script>
 let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
 let editIndex = null;
@@ -57,52 +14,52 @@ const dateInput = document.getElementById("date");
 
 dateInput.value = new Date().toISOString().split("T")[0];
 
-//// FIXED: populate dropdowns AFTER elements exist
 function fillReps(select){
   select.innerHTML = '<option value="">No set</option>';
-  for(let i=1;i<=40;i++){
-    select.innerHTML += `<option value="${i}">${i} reps</option>`;
-  }
+  for(let i=1;i<=40;i++) select.innerHTML += `<option value="${i}">${i} reps</option>`;
 }
-fillReps(reps1);
-fillReps(reps2);
-fillReps(reps3);
+fillReps(reps1); fillReps(reps2); fillReps(reps3);
 
-function save(){
-  localStorage.setItem("workouts", JSON.stringify(workouts));
-}
+function save(){ localStorage.setItem("workouts", JSON.stringify(workouts)); }
 
 function getRepsString(){
-  let sets = [reps1.value, reps2.value, reps3.value].filter(x=>x);
-  return sets.join(" / ");
+  return [reps1.value,reps2.value,reps3.value].filter(x=>x).join(" / ");
 }
 
 function addWorkout(){
-  const date = dateInput.value;
-  const exercise = exerciseInput.value.trim();
-  let weight = weightInput.value.trim();
-  const reps = getRepsString();
+  const date=dateInput.value;
+  const exercise=exerciseInput.value.trim();
+  let weight=weightInput.value.trim();
+  const reps=getRepsString();
+  if(!exercise||!reps) return alert("Enter exercise and at least one set");
 
-  if(!exercise || !reps) return alert("Enter exercise and at least one set");
+  if(db.checked) weight+=" DB";
+  if(eachSide.checked) weight+=" each side";
 
-  if(db.checked) weight += " DB";
-  if(eachSide.checked) weight += " each side";
+  if(editIndex!==null){ workouts[editIndex]={exercise,weight,reps,date}; editIndex=null; }
+  else workouts.push({exercise,weight,reps,date});
 
-  if(editIndex !== null){
-    workouts[editIndex] = {exercise, weight, reps, date};
-    editIndex = null;
-  } else {
-    workouts.push({exercise, weight, reps, date});
-  }
-
-  exerciseInput.value="";
-  weightInput.value="";
+  exerciseInput.value=""; weightInput.value="";
   reps1.value=reps2.value=reps3.value="";
   db.checked=eachSide.checked=false;
-  dateInput.value = new Date().toISOString().split("T")[0];
+  dateInput.value=new Date().toISOString().split("T")[0];
 
-  save();
-  loadWorkouts();
+  save(); loadWorkouts();
+}
+
+function moveWorkout(index, direction){
+  const date = workouts[index].date;
+  let sameDayIndexes = workouts
+    .map((w,i)=> w.date===date ? i : null)
+    .filter(i=> i!==null);
+
+  const pos = sameDayIndexes.indexOf(index);
+  const newPos = pos + direction;
+  if(newPos < 0 || newPos >= sameDayIndexes.length) return;
+
+  const swapIndex = sameDayIndexes[newPos];
+  [workouts[index], workouts[swapIndex]] = [workouts[swapIndex], workouts[index]];
+  save(); loadWorkouts();
 }
 
 function getMonday(d){
@@ -172,6 +129,8 @@ function loadWorkouts(){
           item.className="workoutItem";
           item.innerHTML=`${w.exercise} ${w.weight} x ${w.reps}
           <span>
+          <button class="smallbtn" onclick="moveWorkout(${w.index},-1)">⬆️</button>
+          <button class="smallbtn" onclick="moveWorkout(${w.index},1)">⬇️</button>
           <button class="smallbtn" onclick="editWorkout(${w.index})">✏️</button>
           <button class="smallbtn" onclick="deleteWorkout(${w.index})">🗑</button>
           </span>`;
@@ -185,5 +144,3 @@ function loadWorkouts(){
 
 loadWorkouts();
 </script>
-</body>
-</html>
