@@ -5,22 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body { font-family: Arial; margin: 0; padding: 20px; }
-    input, button { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; box-sizing:border-box; }
-    h2 { text-align:center; }
+    input, button { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; box-sizing: border-box; }
+    h2 { text-align:center; margin-bottom:10px; }
 
-    .week { margin-top:30px; }
+    .week { margin-top:30px; border:1px solid #ccc; border-radius:8px; padding:10px; background:#f9f9f9; }
     .weekTitle { font-weight:bold; font-size:18px; margin-bottom:10px; }
 
-    .weekGrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; overflow-x:auto; }
-
-    .dayColumn { border:1px solid #ddd; border-radius:6px; padding:6px; min-height:60px; display:flex; flex-direction:column; }
-
-    .dayHeader { font-weight:bold; font-size:14px; text-align:center; margin-bottom:6px; }
-
-    .workoutChip { border:1px solid #ccc; border-radius:6px; padding:4px 6px; margin-bottom:4px; font-size:12px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; }
+    .dayRow { margin-top:12px; }
+    .dayHeader { font-weight:bold; font-size:14px; margin-bottom:4px; }
+    .workoutItem { font-size:12px; padding:4px; border-bottom:1px dashed #ddd; display:flex; justify-content:space-between; align-items:center; }
 
     .smallbtn { width:auto; padding:2px 4px; font-size:11px; margin-left:2px; }
 
+    .dashboard { background:#eee; padding:6px 10px; margin-bottom:10px; border-radius:6px; font-size:13px; }
   </style>
 </head>
 <body>
@@ -53,10 +50,7 @@ function addWorkout() {
   const weight = document.getElementById("weight").value.trim();
   const reps = document.getElementById("reps").value.trim();
 
-  if(!exercise || !reps){
-    alert("Please enter Exercise and Reps");
-    return;
-  }
+  if(!exercise || !reps) return alert("Enter Exercise and Reps");
 
   if(editIndex !== null){
     workouts[editIndex] = { exercise, weight, reps, date };
@@ -74,7 +68,6 @@ function addWorkout() {
   loadWorkouts();
 }
 
-// Helper: get Monday of a date
 function getMonday(d){
   const date = new Date(d);
   const day = date.getDay();
@@ -101,7 +94,6 @@ function editWorkout(index){
   editIndex = index;
 }
 
-// Main render function
 function loadWorkouts(){
   const list = document.getElementById("list");
   list.innerHTML = "";
@@ -110,7 +102,7 @@ function loadWorkouts(){
   // Sort newest → oldest
   workouts.sort((a,b)=> new Date(b.date) - new Date(a.date));
 
-  // Group workouts by week starting Monday
+  // Group workouts by week
   const weeks = {};
   workouts.forEach((w,index)=>{
     const monday = getMonday(w.date).toISOString().split("T")[0];
@@ -119,40 +111,61 @@ function loadWorkouts(){
   });
 
   Object.keys(weeks).sort((a,b)=> new Date(b)-new Date(a)).forEach(weekStart=>{
+    const weekData = weeks[weekStart];
     const monday = new Date(weekStart);
     const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
 
+    // Weekly dashboard (totals per exercise)
+    const totals = {};
+    weekData.forEach(w=>{
+      if(!totals[w.exercise]) totals[w.exercise] = {weight:0, reps:0};
+      totals[w.exercise].reps += parseInt(w.reps)||0;
+      totals[w.exercise].weight += parseInt(w.weight)||0;
+    });
+    let dashboardHTML = "Weekly totals: ";
+    for(let ex in totals){
+      dashboardHTML += `${ex} ${totals[ex].weight}kg x ${totals[ex].reps} reps; `;
+    }
+
     list.innerHTML += `<div class="week">
-      <div class="weekTitle">
-        Week ${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}
-      </div>
-      <div class="weekGrid"></div>
+      <div class="weekTitle">Week ${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}</div>
+      <div class="dashboard">${dashboardHTML}</div>
     </div>`;
 
-    const grid = list.querySelector(".week:last-child .weekGrid");
+    const weekDiv = list.querySelector(".week:last-child");
 
-    // Create columns for Mon → Sun
+    // Group by day
+    const days = {};
+    weekData.forEach(w=>{
+      if(!days[w.date]) days[w.date] = [];
+      days[w.date].push(w);
+    });
+
+    // Create day rows Mon → Sun
     for(let i=0;i<7;i++){
       const dayDate = new Date(monday); dayDate.setDate(monday.getDate()+i);
       const dayStr = dayDate.toISOString().split("T")[0];
       const dayName = dayDate.toLocaleDateString(undefined,{weekday:'short', day:'numeric', month:'short'});
 
-      const col = document.createElement("div");
-      col.className = "dayColumn";
-      col.innerHTML = `<div class="dayHeader">${dayName}</div>`;
+      const dayDiv = document.createElement("div");
+      dayDiv.className = "dayRow";
+      dayDiv.innerHTML = `<div class="dayHeader">${dayName}</div>`;
 
-      weeks[weekStart].filter(w=>w.date===dayStr).forEach(w=>{
-        const chip = document.createElement("div");
-        chip.className = "workoutChip";
-        chip.innerHTML = `${w.exercise} ${w.weight||""}kg x ${w.reps} 
-          <button class="smallbtn" onclick="editWorkout(${w.index})">✏️</button>
-          <button class="smallbtn" onclick="deleteWorkout(${w.index})">🗑</button>`;
-        col.appendChild(chip);
-      });
+      if(days[dayStr]){
+        days[dayStr].forEach(w=>{
+          const item = document.createElement("div");
+          item.className = "workoutItem";
+          item.innerHTML = `${w.exercise} ${w.weight||""}kg x ${w.reps}
+            <span>
+            <button class="smallbtn" onclick="editWorkout(${w.index})">✏️</button>
+            <button class="smallbtn" onclick="deleteWorkout(${w.index})">🗑</button>
+            </span>`;
+          dayDiv.appendChild(item);
+        });
+      }
 
-      grid.appendChild(col);
+      weekDiv.appendChild(dayDiv);
     }
-
   });
 }
 
