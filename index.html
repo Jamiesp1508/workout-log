@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Workout Log</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial; max-width: 500px; margin: auto; padding: 20px; }
+    input, button { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; }
+    .entry { border-bottom: 1px solid #ddd; padding: 8px 0; }
+    h2 { text-align: center; }
+  </style>
+</head>
+<body>
+
+<h2>Workout Log</h2>
+
+<input id="exercise" placeholder="Exercise">
+<input id="weight" placeholder="Weight (kg)">
+<input id="reps" placeholder="Reps">
+<button onclick="addWorkout()">Save Workout</button>
+
+<h3>History</h3>
+<div id="list"></div>
+
+<script>
+let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
+
+function save() {
+  localStorage.setItem("workouts", JSON.stringify(workouts));
+}
+
+function addWorkout() {
+  const exercise = document.getElementById("exercise").value;
+  const weight = document.getElementById("weight").value;
+  const reps = document.getElementById("reps").value;
+  const today = new Date().toISOString().split("T")[0];
+
+  workouts.unshift({ exercise, weight, reps, date: today });
+  save();
+  loadWorkouts();
+}
+
+function loadWorkouts() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  workouts.forEach(w => {
+    list.innerHTML += `
+      <div class="entry">
+        <b>${w.exercise}</b><br>
+        ${w.weight || ""}kg x ${w.reps}<br>
+        <small>${w.date}</small>
+      </div>`;
+  });
+}
+
+loadWorkouts();
+</script>
+
+</body>
+</html>
