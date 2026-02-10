@@ -6,7 +6,9 @@
   <style>
     body { font-family: Arial; max-width: 500px; margin: auto; padding: 20px; }
     input, button { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; }
-    .entry { border-bottom: 1px solid #ddd; padding: 10px 0; }
+    .entry { padding: 8px 0; border-bottom:1px solid #eee; }
+    .week { margin-top:25px; }
+    .weekTitle { font-weight:bold; font-size:18px; margin-bottom:10px; }
     .smallbtn { width:auto; padding:6px 10px; font-size:14px; margin-right:6px; }
     h2 { text-align:center; }
   </style>
@@ -30,6 +32,17 @@ let editIndex = null;
 
 document.getElementById("date").value = new Date().toISOString().split("T")[0];
 
+function getMonday(d) {
+  d = new Date(d);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+}
+
+function formatDate(d){
+  return d.toISOString().split("T")[0];
+}
+
 function save() {
   localStorage.setItem("workouts", JSON.stringify(workouts));
 }
@@ -44,7 +57,7 @@ function addWorkout() {
     workouts[editIndex] = { exercise, weight, reps, date };
     editIndex = null;
   } else {
-    workouts.unshift({ exercise, weight, reps, date });
+    workouts.push({ exercise, weight, reps, date });
   }
 
   document.getElementById("exercise").value = "";
@@ -75,15 +88,40 @@ function loadWorkouts() {
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  workouts.forEach((w,index) => {
+  // Sort newest → oldest
+  workouts.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  // Group by week
+  const weeks = {};
+  workouts.forEach((w, index) => {
+    const monday = formatDate(getMonday(w.date));
+    if(!weeks[monday]) weeks[monday] = [];
+    weeks[monday].push({...w, index});
+  });
+
+  Object.keys(weeks).sort((a,b)=> new Date(b)-new Date(a)).forEach(weekStart => {
+    const monday = new Date(weekStart);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate()+6);
+
     list.innerHTML += `
-      <div class="entry">
-        <b>${w.exercise}</b><br>
-        ${w.weight || ""}kg x ${w.reps}<br>
-        <small>${w.date}</small><br>
-        <button class="smallbtn" onclick="editWorkout(${index})">Edit</button>
-        <button class="smallbtn" onclick="deleteWorkout(${index})">Delete</button>
-      </div>`;
+      <div class="week">
+        <div class="weekTitle">
+          Week ${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}
+        </div>
+      </div>
+    `;
+
+    weeks[weekStart].forEach(w => {
+      list.innerHTML += `
+        <div class="entry">
+          <b>${w.exercise}</b><br>
+          ${w.weight || ""}kg x ${w.reps} (${w.date})<br>
+          <button class="smallbtn" onclick="editWorkout(${w.index})">Edit</button>
+          <button class="smallbtn" onclick="deleteWorkout(${w.index})">Delete</button>
+        </div>
+      `;
+    });
   });
 }
 
