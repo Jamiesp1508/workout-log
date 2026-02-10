@@ -6,8 +6,9 @@
   <style>
     body { font-family: Arial; max-width: 500px; margin: auto; padding: 20px; }
     input, button { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; }
-    .entry { border-bottom: 1px solid #ddd; padding: 8px 0; }
-    h2 { text-align: center; }
+    .entry { border-bottom: 1px solid #ddd; padding: 10px 0; }
+    .smallbtn { width:auto; padding:6px 10px; font-size:14px; margin-right:6px; }
+    h2 { text-align:center; }
   </style>
 </head>
 <body>
@@ -24,6 +25,7 @@
 
 <script>
 let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
+let editIndex = null;
 
 function save() {
   localStorage.setItem("workouts", JSON.stringify(workouts));
@@ -35,21 +37,47 @@ function addWorkout() {
   const reps = document.getElementById("reps").value;
   const today = new Date().toISOString().split("T")[0];
 
-  workouts.unshift({ exercise, weight, reps, date: today });
+  if(editIndex !== null){
+    workouts[editIndex] = { exercise, weight, reps, date: today };
+    editIndex = null;
+  } else {
+    workouts.unshift({ exercise, weight, reps, date: today });
+  }
+
+  document.getElementById("exercise").value = "";
+  document.getElementById("weight").value = "";
+  document.getElementById("reps").value = "";
+
   save();
   loadWorkouts();
+}
+
+function deleteWorkout(index){
+  workouts.splice(index,1);
+  save();
+  loadWorkouts();
+}
+
+function editWorkout(index){
+  const w = workouts[index];
+  document.getElementById("exercise").value = w.exercise;
+  document.getElementById("weight").value = w.weight;
+  document.getElementById("reps").value = w.reps;
+  editIndex = index;
 }
 
 function loadWorkouts() {
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  workouts.forEach(w => {
+  workouts.forEach((w,index) => {
     list.innerHTML += `
       <div class="entry">
         <b>${w.exercise}</b><br>
         ${w.weight || ""}kg x ${w.reps}<br>
-        <small>${w.date}</small>
+        <small>${w.date}</small><br>
+        <button class="smallbtn" onclick="editWorkout(${index})">Edit</button>
+        <button class="smallbtn" onclick="deleteWorkout(${index})">Delete</button>
       </div>`;
   });
 }
