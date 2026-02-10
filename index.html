@@ -6,11 +6,31 @@
   <style>
     body { font-family: Arial; max-width: 500px; margin: auto; padding: 20px; }
     input, button { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; }
-    .entry { padding: 8px 0; border-bottom:1px solid #eee; }
-    .week { margin-top:25px; }
-    .weekTitle { font-weight:bold; font-size:18px; margin-bottom:10px; }
-    .smallbtn { width:auto; padding:6px 10px; font-size:14px; margin-right:6px; }
     h2 { text-align:center; }
+
+    .week { margin-top:30px; }
+    .weekTitle { font-weight:bold; font-size:18px; margin-bottom:10px; }
+
+    .dayHeader { font-weight:bold; margin-top:15px; }
+
+    .dayRow {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      font-size:14px;
+      margin-top:6px;
+    }
+
+    .workoutChip {
+      border:1px solid #ddd;
+      padding:6px 8px;
+      border-radius:6px;
+      display:flex;
+      align-items:center;
+      gap:4px;
+    }
+
+    .smallbtn { width:auto; padding:2px 5px; font-size:12px; }
   </style>
 </head>
 <body>
@@ -30,103 +50,11 @@
 let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
 let editIndex = null;
 
-document.getElementById("date").value = new Date().toISOString().split("T")[0];
-
-function getMonday(d) {
-  d = new Date(d);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
-}
-
-function formatDate(d){
-  return d.toISOString().split("T")[0];
-}
+const dateInput = document.getElementById("date");
+dateInput.value = new Date().toISOString().split("T")[0];
 
 function save() {
   localStorage.setItem("workouts", JSON.stringify(workouts));
 }
 
-function addWorkout() {
-  const date = document.getElementById("date").value;
-  const exercise = document.getElementById("exercise").value;
-  const weight = document.getElementById("weight").value;
-  const reps = document.getElementById("reps").value;
-
-  if(editIndex !== null){
-    workouts[editIndex] = { exercise, weight, reps, date };
-    editIndex = null;
-  } else {
-    workouts.push({ exercise, weight, reps, date });
-  }
-
-  document.getElementById("exercise").value = "";
-  document.getElementById("weight").value = "";
-  document.getElementById("reps").value = "";
-  document.getElementById("date").value = new Date().toISOString().split("T")[0];
-
-  save();
-  loadWorkouts();
-}
-
-function deleteWorkout(index){
-  workouts.splice(index,1);
-  save();
-  loadWorkouts();
-}
-
-function editWorkout(index){
-  const w = workouts[index];
-  document.getElementById("date").value = w.date;
-  document.getElementById("exercise").value = w.exercise;
-  document.getElementById("weight").value = w.weight;
-  document.getElementById("reps").value = w.reps;
-  editIndex = index;
-}
-
-function loadWorkouts() {
-  const list = document.getElementById("list");
-  list.innerHTML = "";
-
-  // Sort newest → oldest
-  workouts.sort((a,b) => new Date(b.date) - new Date(a.date));
-
-  // Group by week
-  const weeks = {};
-  workouts.forEach((w, index) => {
-    const monday = formatDate(getMonday(w.date));
-    if(!weeks[monday]) weeks[monday] = [];
-    weeks[monday].push({...w, index});
-  });
-
-  Object.keys(weeks).sort((a,b)=> new Date(b)-new Date(a)).forEach(weekStart => {
-    const monday = new Date(weekStart);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate()+6);
-
-    list.innerHTML += `
-      <div class="week">
-        <div class="weekTitle">
-          Week ${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}
-        </div>
-      </div>
-    `;
-
-    weeks[weekStart].forEach(w => {
-      list.innerHTML += `
-        <div class="entry">
-          <b>${w.exercise}</b><br>
-          ${w.weight || ""}kg x ${w.reps} (${w.date})<br>
-          <button class="smallbtn" onclick="editWorkout(${w.index})">Edit</button>
-          <button class="smallbtn" onclick="deleteWorkout(${w.index})">Delete</button>
-        </div>
-      `;
-    });
-  });
-}
-
-loadWorkouts();
-</script>
-
-</body>
-</html>
+// Get Monday of a given
