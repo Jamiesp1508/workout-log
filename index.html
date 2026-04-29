@@ -60,14 +60,12 @@ dateInput.value = new Date().toISOString().split("T")[0];
 function fillReps(select){
   select.innerHTML = '<option value="">No set</option>';
   for(let i=1;i<=40;i++){
-    select.innerHTML += <option value="${i}">${i} reps</option>;
+    select.innerHTML += `<option value="${i}">${i} reps</option>`;
   }
 }
 fillReps(reps1); fillReps(reps2); fillReps(reps3);
 
-function save(){
-  localStorage.setItem("workouts", JSON.stringify(workouts));
-}
+function save(){ localStorage.setItem("workouts", JSON.stringify(workouts)); }
 
 function getRepsString(){
   return [reps1.value,reps2.value,reps3.value].filter(x=>x).join(" / ");
@@ -78,21 +76,15 @@ function addWorkout(){
   const exercise=exerciseInput.value.trim();
   let weight=weightInput.value.trim();
   const reps=getRepsString();
-
   if(!exercise||!reps) return alert("Enter exercise and at least one set");
 
   if(db.checked) weight+=" DB";
   if(eachSide.checked) weight+=" each side";
 
-  if(editIndex!==null){
-    workouts[editIndex]={exercise,weight,reps,date};
-    editIndex=null;
-  } else {
-    workouts.push({exercise,weight,reps,date});
-  }
+  if(editIndex!==null){ workouts[editIndex]={exercise,weight,reps,date}; editIndex=null; }
+  else workouts.push({exercise,weight,reps,date});
 
-  exerciseInput.value="";
-  weightInput.value="";
+  exerciseInput.value=""; weightInput.value="";
   reps1.value=reps2.value=reps3.value="";
   db.checked=eachSide.checked=false;
   dateInput.value=new Date().toISOString().split("T")[0];
@@ -112,16 +104,12 @@ function moveWorkout(index, direction){
   save(); loadWorkouts();
 }
 
-// ✅ FIXED SUNDAY BUG
 function getMonday(d){
-  const date = new Date(d);
-  const day = date.getDay();
-  const adjustedDay = day === 0 ? 7 : day;
-
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - adjustedDay + 1);
+  const date=new Date(d);
+  const day=date.getDay();
+  const diff=date.getDate()-day+(day===0?-6:1);
+  const monday=new Date(date.setDate(diff));
   monday.setHours(0,0,0,0);
-
   return monday;
 }
 
@@ -147,9 +135,8 @@ function loadWorkouts(){
   workouts.sort((a,b)=> new Date(b.date)-new Date(a.date));
 
   const weeks={};
-
   workouts.forEach((w,i)=>{
-    const monday = getMonday(w.date).toISOString().split("T")[0];
+    const monday=getMonday(w.date).toISOString().split("T")[0];
     if(!weeks[monday]) weeks[monday]=[];
     weeks[monday].push({...w,index:i});
   });
@@ -158,10 +145,11 @@ function loadWorkouts(){
     const monday=new Date(weekStart);
     const sunday=new Date(monday); sunday.setDate(monday.getDate()+6);
 
-    list.innerHTML += <div class="week">       <div class="weekTitle">Week ${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}</div>     </div>;
+    list.innerHTML += `<div class="week">
+      <div class="weekTitle">Week ${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}</div>
+    </div>`;
 
     const weekDiv=list.querySelector(".week:last-child");
-
     const days={};
     weeks[weekStart].forEach(w=>{
       if(!days[w.date]) days[w.date]=[];
@@ -169,25 +157,28 @@ function loadWorkouts(){
     });
 
     for(let i=0;i<7;i++){
-      const dayDate=new Date(monday);
-      dayDate.setDate(monday.getDate()+i);
-
-      const dayStr = dayDate.toISOString().split("T")[0];
-      const dayName = dayDate.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
+      const dayDate=new Date(monday); dayDate.setDate(monday.getDate()+i);
+      const dayStr=dayDate.toISOString().split("T")[0];
+      const dayName=dayDate.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
 
       const dayDiv=document.createElement("div");
       dayDiv.className="dayRow";
-      dayDiv.innerHTML=<div class="dayHeader">${dayName}</div>;
+      dayDiv.innerHTML=`<div class="dayHeader">${dayName}</div>`;
 
       if(days[dayStr]){
         days[dayStr].forEach(w=>{
           const item=document.createElement("div");
           item.className="workoutItem";
-          item.innerHTML=${w.exercise} ${w.weight} x ${w.reps}           <span>           <button class="smallbtn" onclick="moveWorkout(${w.index},-1)">⬆️</button>           <button class="smallbtn" onclick="moveWorkout(${w.index},1)">⬇️</button>           <button class="smallbtn" onclick="editWorkout(${w.index})">✏️</button>           <button class="smallbtn" onclick="deleteWorkout(${w.index})">🗑</button>           </span>;
+          item.innerHTML=`${w.exercise} ${w.weight} x ${w.reps}
+          <span>
+          <button class="smallbtn" onclick="moveWorkout(${w.index},-1)">⬆️</button>
+          <button class="smallbtn" onclick="moveWorkout(${w.index},1)">⬇️</button>
+          <button class="smallbtn" onclick="editWorkout(${w.index})">✏️</button>
+          <button class="smallbtn" onclick="deleteWorkout(${w.index})">🗑</button>
+          </span>`;
           dayDiv.appendChild(item);
         });
       }
-
       weekDiv.appendChild(dayDiv);
     }
   });
@@ -195,6 +186,5 @@ function loadWorkouts(){
 
 loadWorkouts();
 </script>
-
 </body>
-</htm
+</html>
