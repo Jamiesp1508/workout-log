@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Workout Data Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    pre { background:#f4f4f4; padding:10px; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+
+<h2>Your Saved Workouts</h2>
+
+<pre id="output"></pre>
+
+<script>
+const data = localStorage.getItem("workouts");
+document.getElementById("output").textContent = data || "No data found";
+</script>
+
+</body>
+</html>
