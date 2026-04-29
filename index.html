@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -55,8 +56,16 @@ const eachSide = document.getElementById("eachSide");
 const list = document.getElementById("list");
 const dateInput = document.getElementById("date");
 
-dateInput.value = new Date().toLocaleDateString("en-CA");
+// FIX: Always store date in YYYY-MM-DD (stable)
+function todayString(){
+  const d = new Date();
+  return d.getFullYear() + "-" +
+    String(d.getMonth()+1).padStart(2,"0") + "-" +
+    String(d.getDate()).padStart(2,"0");
+}
+dateInput.value = todayString();
 
+// Populate reps dropdowns
 function fillReps(select){
   select.innerHTML = '<option value="">No set</option>';
   for(let i=1;i<=40;i++){
@@ -65,7 +74,9 @@ function fillReps(select){
 }
 fillReps(reps1); fillReps(reps2); fillReps(reps3);
 
-function save(){ localStorage.setItem("workouts", JSON.stringify(workouts)); }
+function save(){
+  localStorage.setItem("workouts", JSON.stringify(workouts));
+}
 
 function getRepsString(){
   return [reps1.value,reps2.value,reps3.value].filter(x=>x).join(" / ");
@@ -93,16 +104,37 @@ function addWorkout(){
   weightInput.value="";
   reps1.value=reps2.value=reps3.value="";
   db.checked=eachSide.checked=false;
-  dateInput.value=new Date().toLocaleDateString("en-CA");
+  dateInput.value=todayString();
 
   save(); loadWorkouts();
+}
+
+// Fix Sunday + timezone
+function getMonday(d){
+  const date = new Date(d);
+  const day = date.getDay();
+  const adjustedDay = day === 0 ? 7 : day;
+
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - adjustedDay + 1);
+  monday.setHours(0,0,0,0);
+
+  return monday;
+}
+
+// Convert ANY date format to YYYY-MM-DD
+function normaliseDate(d){
+  const date = new Date(d);
+  return date.getFullYear() + "-" +
+    String(date.getMonth()+1).padStart(2,"0") + "-" +
+    String(date.getDate()).padStart(2,"0");
 }
 
 function moveWorkout(index, direction){
   const date = workouts[index].date;
 
   let sameDayIndexes = workouts
-    .map((w,i)=> w.date===date ? i : null)
+    .map((w,i)=> normaliseDate(w.date)===normaliseDate(date) ? i : null)
     .filter(i=> i!==null);
 
   const pos = sameDayIndexes.indexOf(index);
@@ -116,18 +148,6 @@ function moveWorkout(index, direction){
   save(); loadWorkouts();
 }
 
-function getMonday(d){
-  const date = new Date(d);
-  const day = date.getDay();
-  const adjustedDay = day === 0 ? 7 : day;
-
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - adjustedDay + 1);
-  monday.setHours(0,0,0,0);
-
-  return monday;
-}
-
 function deleteWorkout(i){
   if(confirm("Delete workout?")){
     workouts.splice(i,1);
@@ -139,7 +159,7 @@ function editWorkout(i){
   const w=workouts[i];
   exerciseInput.value=w.exercise;
   weightInput.value=w.weight;
-  dateInput.value=w.date;
+  dateInput.value=normaliseDate(w.date);
   editIndex=i;
 }
 
@@ -150,8 +170,9 @@ function loadWorkouts(){
   workouts.sort((a,b)=> new Date(b.date)-new Date(a.date));
 
   const weeks={};
+
   workouts.forEach((w,i)=>{
-    const monday=getMonday(w.date).toLocaleDateString("en-CA");
+    const monday = normaliseDate(getMonday(w.date));
     if(!weeks[monday]) weeks[monday]=[];
     weeks[monday].push({...w,index:i});
   });
@@ -166,15 +187,16 @@ function loadWorkouts(){
 
     const days={};
     weeks[weekStart].forEach(w=>{
-      if(!days[w.date]) days[w.date]=[];
-      days[w.date].push(w);
+      const d = normaliseDate(w.date);
+      if(!days[d]) days[d]=[];
+      days[d].push(w);
     });
 
     for(let i=0;i<7;i++){
       const dayDate=new Date(monday);
       dayDate.setDate(monday.getDate()+i);
 
-      const dayStr=dayDate.toLocaleDateString("en-CA");
+      const dayStr=normaliseDate(dayDate);
       const dayName=dayDate.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
 
       const dayDiv=document.createElement("div");
@@ -199,4 +221,4 @@ loadWorkouts();
 </script>
 
 </body>
-</htm
+</h
