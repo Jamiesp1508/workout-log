@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -43,7 +42,18 @@
 <div id="list"></div>
 
 <script>
-let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
+let raw = localStorage.getItem("workouts");
+
+// 🔥 DEBUG: show what's actually stored
+console.log("RAW DATA:", raw);
+
+let workouts = [];
+try {
+  workouts = JSON.parse(raw) || [];
+} catch(e) {
+  workouts = [];
+}
+
 let editIndex = null;
 
 const exerciseInput = document.getElementById("exercise");
@@ -56,7 +66,7 @@ const eachSide = document.getElementById("eachSide");
 const list = document.getElementById("list");
 const dateInput = document.getElementById("date");
 
-// FIX: Always store date in YYYY-MM-DD (stable)
+// stable date format
 function todayString(){
   const d = new Date();
   return d.getFullYear() + "-" +
@@ -65,7 +75,7 @@ function todayString(){
 }
 dateInput.value = todayString();
 
-// Populate reps dropdowns
+// reps dropdowns
 function fillReps(select){
   select.innerHTML = '<option value="">No set</option>';
   for(let i=1;i<=40;i++){
@@ -88,7 +98,7 @@ function addWorkout(){
   let weight=weightInput.value.trim();
   const reps=getRepsString();
 
-  if(!exercise||!reps) return alert("Enter exercise and at least one set");
+  if(!exercise||!reps) return alert("Enter exercise and reps");
 
   if(db.checked) weight+=" DB";
   if(eachSide.checked) weight+=" each side";
@@ -109,7 +119,15 @@ function addWorkout(){
   save(); loadWorkouts();
 }
 
-// Fix Sunday + timezone
+// 🔥 FORCE FIX any weird date format
+function fixDate(d){
+  const date = new Date(d);
+  if(isNaN(date)) return todayString();
+  return date.getFullYear() + "-" +
+    String(date.getMonth()+1).padStart(2,"0") + "-" +
+    String(date.getDate()).padStart(2,"0");
+}
+
 function getMonday(d){
   const date = new Date(d);
   const day = date.getDay();
@@ -122,19 +140,11 @@ function getMonday(d){
   return monday;
 }
 
-// Convert ANY date format to YYYY-MM-DD
-function normaliseDate(d){
-  const date = new Date(d);
-  return date.getFullYear() + "-" +
-    String(date.getMonth()+1).padStart(2,"0") + "-" +
-    String(date.getDate()).padStart(2,"0");
-}
-
 function moveWorkout(index, direction){
-  const date = workouts[index].date;
+  const date = fixDate(workouts[index].date);
 
   let sameDayIndexes = workouts
-    .map((w,i)=> normaliseDate(w.date)===normaliseDate(date) ? i : null)
+    .map((w,i)=> fixDate(w.date)===date ? i : null)
     .filter(i=> i!==null);
 
   const pos = sameDayIndexes.indexOf(index);
@@ -159,22 +169,25 @@ function editWorkout(i){
   const w=workouts[i];
   exerciseInput.value=w.exercise;
   weightInput.value=w.weight;
-  dateInput.value=normaliseDate(w.date);
+  dateInput.value=fixDate(w.date);
   editIndex=i;
 }
 
 function loadWorkouts(){
   list.innerHTML="";
-  if(workouts.length===0) return;
-
-  workouts.sort((a,b)=> new Date(b.date)-new Date(a.date));
+  if(workouts.length===0){
+    list.innerHTML = "<p>No workouts found</p>";
+    return;
+  }
 
   const weeks={};
 
   workouts.forEach((w,i)=>{
-    const monday = normaliseDate(getMonday(w.date));
+    const cleanDate = fixDate(w.date);
+    const monday = fixDate(getMonday(cleanDate));
+
     if(!weeks[monday]) weeks[monday]=[];
-    weeks[monday].push({...w,index:i});
+    weeks[monday].push({...w,index:i,date:cleanDate});
   });
 
   Object.keys(weeks).sort((a,b)=> new Date(b)-new Date(a)).forEach(weekStart=>{
@@ -187,16 +200,15 @@ function loadWorkouts(){
 
     const days={};
     weeks[weekStart].forEach(w=>{
-      const d = normaliseDate(w.date);
-      if(!days[d]) days[d]=[];
-      days[d].push(w);
+      if(!days[w.date]) days[w.date]=[];
+      days[w.date].push(w);
     });
 
     for(let i=0;i<7;i++){
       const dayDate=new Date(monday);
       dayDate.setDate(monday.getDate()+i);
 
-      const dayStr=normaliseDate(dayDate);
+      const dayStr=fixDate(dayDate);
       const dayName=dayDate.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
 
       const dayDiv=document.createElement("div");
@@ -221,4 +233,4 @@ loadWorkouts();
 </script>
 
 </body>
-</h
+</htm
